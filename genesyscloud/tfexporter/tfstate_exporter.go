@@ -5,16 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 	resourceExporter "terraform-provider-genesyscloud/genesyscloud/resource_exporter"
+	"terraform-provider-genesyscloud/genesyscloud/tfexporter_state"
 	"terraform-provider-genesyscloud/genesyscloud/util/files"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 /*
@@ -45,14 +42,32 @@ func (t *TFStateFileWriter) writeTfState() diag.Diagnostics {
 		return diagErr
 	}
 
-	tfstate := terraform.NewState()
-	for _, resource := range t.resources {
-		resourceState := &terraform.ResourceState{
-			Type:     resource.Type,
-			Primary:  resource.State,
-			Provider: "provider.genesyscloud",
-		}
-		tfstate.RootModule().Resources[resource.ResourceType+resource.Type+"."+resource.Name] = resourceState
+	// tfstate := terraform.NewState()
+	// tfstate.Version = 4
+	// tfstate.Init()
+	// //allResources := make(map[string]*terraform.ResourceState, 0)
+	// //var rootModulePath = []string{"root"}
+	// for _, resource := range t.resources {
+
+	// 	resourceState := &terraform.ResourceState{
+	// 		Mode:     resource.Mode,
+	// 		Type:     resource.Type,
+	// 		Primary:  resource.State,
+	// 		Provider: "provider[\"registry.terraform.io/mypurecloud/genesyscloud\"]",
+	// 	}
+	// }
+
+	// 	//allResources[resource.ResourceType+resource.Type+"."+resource.BlockLabel] = resourceState
+	// 	tfstate.RootModule().Resources[fmt.Sprintf("%s.%s.%s", resource.Mode, resource.Type, resource.Name)] = resourceState
+	// }
+	// // tfstate.Modules = append(tfstate.Modules, &terraform.ModuleState{
+	// // 	Path:      tfstate.RootModule().Path,
+	// // 	Resources: allResources,
+	// // })
+
+	tfstate, err := tfexporter_state.GenerateTerraformStateV4(t.resources)
+	if err != nil {
+		return diag.Errorf("Failed to generate Terraform State file: %v", err)
 	}
 
 	data, err := json.MarshalIndent(tfstate, "", "  ")
@@ -65,53 +80,53 @@ func (t *TFStateFileWriter) writeTfState() diag.Diagnostics {
 		return err
 	}
 
-	// This outputs terraform state v3, and there is currently no public lib to generate v4 which is required for terraform 0.13+.
-	// However, the state can be upgraded automatically by calling the terraform CLI. If this fails, just print a warning indicating
-	// that the state likely needs to be upgraded manually.
-	cliError := `Failed to run the terraform CLI to upgrade the generated state file. 
-	The generated tfstate file will need to be upgraded manually by running the 
-	following in the state file's directory:
-	'terraform state replace-provider registry.terraform.io/-/genesyscloud registry.terraform.io/mypurecloud/genesyscloud'`
+	// // This outputs terraform state v3, and there is currently no public lib to generate v4 which is required for terraform 0.13+.
+	// // However, the state can be upgraded automatically by calling the terraform CLI. If this fails, just print a warning indicating
+	// // that the state likely needs to be upgraded manually.
+	// cliError := `Failed to run the terraform CLI to upgrade the generated state file.
+	// The generated tfstate file will need to be upgraded manually by running the
+	// following in the state file's directory:
+	// 'terraform state replace-provider registry.terraform.io/-/genesyscloud registry.terraform.io/mypurecloud/genesyscloud'`
 
-	tfpath, err := exec.LookPath("terraform")
-	if err != nil {
-		log.Println("Failed to find terraform path:", err)
-		log.Println(cliError)
-		return nil
-	}
+	// tfpath, err := exec.LookPath("terraform")
+	// if err != nil {
+	// 	log.Println("Failed to find terraform path:", err)
+	// 	log.Println(cliError)
+	// 	return nil
+	// }
 
-	// exec.CommandContext does not auto-resolve symlinks
-	fileInfo, err := os.Lstat(tfpath)
-	if err != nil {
-		log.Println("Failed to Lstat terraform path:", err)
-		log.Println(cliError)
-		return nil
-	}
-	if fileInfo.Mode()&os.ModeSymlink != 0 {
-		tfpath, err = filepath.EvalSymlinks(tfpath)
-		if err != nil {
-			log.Println("Failed to resolve terraform path symlink:", err)
-			log.Println(cliError)
-			return nil
-		}
-	}
+	// // exec.CommandContext does not auto-resolve symlinks
+	// fileInfo, err := os.Lstat(tfpath)
+	// if err != nil {
+	// 	log.Println("Failed to Lstat terraform path:", err)
+	// 	log.Println(cliError)
+	// 	return nil
+	// }
+	// if fileInfo.Mode()&os.ModeSymlink != 0 {
+	// 	tfpath, err = filepath.EvalSymlinks(tfpath)
+	// 	if err != nil {
+	// 		log.Println("Failed to resolve terraform path symlink:", err)
+	// 		log.Println(cliError)
+	// 		return nil
+	// 	}
+	// }
 
-	cmd := exec.CommandContext(t.ctx, tfpath)
-	cmd.Args = append(cmd.Args, []string{
-		"state",
-		"replace-provider",
-		"-auto-approve",
-		"-state=" + stateFilePath,
-		"registry.terraform.io/-/genesyscloud",
-		t.providerSource,
-	}...)
+	// cmd := exec.CommandContext(t.ctx, tfpath)
+	// cmd.Args = append(cmd.Args, []string{
+	// 	"state",
+	// 	"replace-provider",
+	// 	"-auto-approve",
+	// 	"-state=" + stateFilePath,
+	// 	"registry.terraform.io/-/genesyscloud",
+	// 	t.providerSource,
+	// }...)
 
-	log.Printf("Running 'terraform state replace-provider' on %s", stateFilePath)
-	if err = cmd.Run(); err != nil {
-		log.Println("Failed to run command:", err)
-		log.Println(cliError)
-		return nil
-	}
+	// log.Printf("Running 'terraform state replace-provider' on %s", stateFilePath)
+	// if err = cmd.Run(); err != nil {
+	// 	log.Println("Failed to run command:", err)
+	// 	log.Println(cliError)
+	// 	return nil
+	// }
 	return nil
 }
 

@@ -371,8 +371,17 @@ func (g *GenesysCloudResourceExporter) buildResourceConfigMap() diag.Diagnostics
 	g.resourceTypesHCLBlocks = make(map[string]resourceHCLBlock, 0)
 	g.unresolvedAttrs = make([]unresolvableAttributeInfo, 0)
 
-	for _, resource := range g.resources {
+	for i, resource := range g.resources {
 		jsonResult, diagErr := g.instanceStateToMap(resource.State, resource.CtyType)
+		stateAttributesMap := make(map[string]interface{})
+
+		// Copy all key-value pairs from jsonResult
+		for k, v := range jsonResult {
+			stateAttributesMap[k] = v
+		}
+		g.resources[i].StateAttributes = stateAttributesMap
+		g.resources[i].StateAttributes["id"] = resource.State.ID
+
 		isDataSource := g.isDataSource(resource.Type, resource.Name)
 		if diagErr != nil {
 			return diagErr
@@ -469,6 +478,9 @@ func (g *GenesysCloudResourceExporter) instanceStateToMap(state *terraform.Insta
 	if err != nil {
 		return nil, diag.FromErr(err)
 	}
+
+	delete(jsonMap, "id")
+
 	return jsonMap, nil
 }
 
@@ -1052,7 +1064,7 @@ func (g *GenesysCloudResourceExporter) getResourcesForType(resType string, provi
 					return nil
 				}
 
-				resourceType := ""
+				resourceMode := "managed"
 
 				if g.isDataSource(resType, resMeta.Name) {
 					g.exMutex.Lock()
@@ -1073,15 +1085,16 @@ func (g *GenesysCloudResourceExporter) getResourcesForType(resType string, provi
 						}
 					}
 					instanceState.Attributes = attributes
-					resourceType = "data."
+					resourceMode = "data"
 				}
 
 				resourceChan <- resourceExporter.ResourceInfo{
-					State:        instanceState,
-					Name:         resMeta.Name,
-					Type:         resType,
-					CtyType:      ctyType,
-					ResourceType: resourceType,
+					Resource: res,
+					State:    instanceState,
+					Name:     resMeta.Name,
+					Type:     resType,
+					CtyType:  ctyType,
+					Mode:     resourceMode,
 				}
 
 				return nil
@@ -1145,14 +1158,14 @@ func getResourceState(ctx context.Context, resource *schema.Resource, resID stri
 		}
 	}
 
-	state, err := resource.RefreshWithoutUpgrade(ctx, instanceState, meta)
-	if err != nil {
-		if strings.Contains(fmt.Sprintf("%v", err), "API Error: 404") ||
-			strings.Contains(fmt.Sprintf("%v", err), "API Error: 410") {
+	state, errDiag := resource.RefreshWithoutUpgrade(ctx, instanceState, meta)
+	if errDiag != nil {
+		if strings.Contains(fmt.Sprintf("%v", errDiag), "API Error: 404") ||
+			strings.Contains(fmt.Sprintf("%v", errDiag), "API Error: 410") {
 			return nil, nil
 		}
-		log.Printf("Error during RefreshWithoutUpgrade for resource  %s, %v", resID, err)
-		return nil, err
+		log.Printf("Error during RefreshWithoutUpgrade for resource  %s, %v", resID, errDiag)
+		return nil, errDiag
 	}
 	if state == nil || state.ID == "" {
 		// Resource no longer exists

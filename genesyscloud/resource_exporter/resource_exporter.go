@@ -46,11 +46,13 @@ type RefAttrSettings struct {
 }
 
 type ResourceInfo struct {
-	State        *terraform.InstanceState
-	Name         string
-	Type         string
-	CtyType      cty.Type
-	ResourceType string
+	Resource        *schema.Resource
+	State           *terraform.InstanceState
+	Name            string
+	Type            string
+	CtyType         cty.Type
+	StateAttributes map[string]interface{}
+	Mode            string
 }
 
 // RefAttrCustomResolver allows the definition of a custom resolver for an exporter.
