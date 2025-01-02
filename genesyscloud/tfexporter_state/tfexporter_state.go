@@ -164,7 +164,7 @@ func IsExporterActive() bool {
 	return exportState
 }
 
-func GenerateTerraformStateV4(resources []resourceExporter.ResourceInfo) (*TerraformStateV4, error) {
+func GenerateTerraformStateV4(resources []resourceExporter.ResourceInfo, providerSource string) (*TerraformStateV4, error) {
 	stateMutex.Lock()
 	defer stateMutex.Unlock()
 	lineage, err := uuid.GenerateUUID()
@@ -185,7 +185,7 @@ func GenerateTerraformStateV4(resources []resourceExporter.ResourceInfo) (*Terra
 			Mode:     res.Mode,
 			Type:     res.Type,
 			Name:     res.Name,
-			Provider: "provider[\"registry.terraform.io/mypurecloud/genesyscloud\"]",
+			Provider: fmt.Sprintf("provider[\"%s\"]", providerSource),
 			Instances: []TerraformStateInstanceV4{
 				{
 					Attributes:              make(map[string]interface{}),

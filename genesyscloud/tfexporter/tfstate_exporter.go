@@ -65,7 +65,7 @@ func (t *TFStateFileWriter) writeTfState() diag.Diagnostics {
 	// // 	Resources: allResources,
 	// // })
 
-	tfstate, err := tfexporter_state.GenerateTerraformStateV4(t.resources)
+	tfstate, err := tfexporter_state.GenerateTerraformStateV4(t.resources, t.providerSource)
 	if err != nil {
 		return diag.Errorf("Failed to generate Terraform State file: %v", err)
 	}
