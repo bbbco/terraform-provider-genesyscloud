@@ -7,6 +7,7 @@ before:
     # this is just an example and not a requirement for provider building/publishing
     - go mod tidy
     - go run ./tools/dependency_tree "public/data/" "{{ .Version }}"
+    - ./scripts/goreleaser/process-release-notes.sh {{.Version}}
 builds:
   - env:
       # goreleaser does not work with CGO, it could also complicate
@@ -62,7 +63,27 @@ release:
   draft: true
   extra_files:
     - glob: ./public/data/dependency_tree-*.json
+  footer: |
+    {{ if (fileExists "docs/releases/{{ .Version }}.md") }}
+    {{- $content := file "docs/releases/{{ .Version }}.md" }}
+    {{ $content }}
+    {{ end }}
 changelog:
   use: github
   sort: asc
   abbrev: -1
+  groups:
+    - title: "🚀 Features"
+      regexp: ".*[Ff]eat(ure).*"
+      order: 100
+    - title: "🐛 Bug Fixes"
+      regexp: ".*[Bb]ug.*|.*[Ff]ix.*"
+      order: 200
+    - title: "📝 Documentation"
+      regexp: ".*[Dd]oc.*|.*[Dd]ocs.*"
+      order: 300
+    - title: "🧪 Tests"
+      regexp: ".*[Tt]est.*"
+      order: 400
+    - title: "🔧 Maintenance"
+      regexp: "^Bump.*|"

@@ -1,6 +1,12 @@
 #!/bin/sh
 set -e
 
+# Ensure we're in the root of the git repository
+if [ ! -d .git ]; then
+	echo "Must be run from root of git repository"
+	exit 1
+fi
+
 if test "$DISTRIBUTION" = "pro"; then
 	echo "Using Pro distribution..."
 	RELEASES_URL="https://github.com/goreleaser/goreleaser-pro/releases"
