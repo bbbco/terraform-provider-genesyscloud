@@ -38,6 +38,7 @@ builds:
       - goos: windows
         goarch: arm64
     binary: "{{ .ProjectName }}_v{{ .Version }}"
+dist: dist
 archives:
   - formats: ["zip"]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
@@ -46,20 +47,23 @@ archives:
 checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_SHA256SUMS"
   algorithm: sha256
-signs:
-  - artifacts: checksum
-    args:
-      # if you are using this in a GitHub action or some other automated pipeline, you
-      # need to pass the batch flag to indicate its not interactive.
-      - "--batch"
-      - "--no-tty"
-      - "--local-user"
-      - "{{ .Env.GPG_FINGERPRINT }}"
-      - "--output"
-      - "${signature}"
-      - "--detach-sign"
-      - "${artifact}"
+# signs:
+#   - artifacts: checksum
+#     args:
+#       # if you are using this in a GitHub action or some other automated pipeline, you
+#       # need to pass the batch flag to indicate its not interactive.
+#       - "--batch"
+#       - "--no-tty"
+#       - "--local-user"
+#       - "{{ .Env.GPG_FINGERPRINT }}"
+#       - "--output"
+#       - "${signature}"
+#       - "--detach-sign"
+#       - "${artifact}"
 release:
+  github:
+    owner: bbbco
+    name: terraform-provider-genesyscloud
   draft: true
   extra_files:
     - glob: ./public/data/dependency_tree-*.json
@@ -87,3 +91,5 @@ changelog:
       order: 400
     - title: "🔧 Maintenance"
       regexp: "^Bump.*|"
+    - title: "📌 Other"
+      order: 800
