@@ -36,4 +36,8 @@ EOF
 
     # Clean up temporary file
     rm temp.md
+
+    # Commit changes
+    git add docs/releases/*
+    git commit -m "Prepare release notes for ${VERSION}"
 fi
