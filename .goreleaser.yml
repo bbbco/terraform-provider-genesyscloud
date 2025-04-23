@@ -21,13 +21,13 @@ builds:
       - "-s -w -X main.version={{.Version}} -X main.commit={{.Commit}}"
     goos:
       - linux
-      - darwin
-      - windows
+      # - darwin
+      # - windows
     goarch:
       - amd64
-      - "386"
-      - arm
-      - arm64
+      # - "386"
+      # - arm
+      # - arm64
     ignore:
       - goos: darwin
         goarch: "386"
@@ -85,6 +85,7 @@ changelog:
       regexp: ".*[Tt]est.*"
       order: 400
     - title: "🔧 Maintenance"
-      regexp: "^Bump.*|"
+      regexp: ".*^Bump.*|"
+      order: 500
     - title: "📌 Other"
       order: 800

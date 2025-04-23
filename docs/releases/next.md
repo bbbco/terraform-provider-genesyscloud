@@ -10,3 +10,4 @@ Examples might include:
 
 ## Additional Release Information
 
+This release adds a new dedicated sanitizer for BCP. This sanitizer can be enabled by setting the feature toggle flag `ENABLE_BCP_SANITIZER` to true as an environmental variable. This sanitizer is built to ensure guaranteed consistency in generating the sanitized block labels.
