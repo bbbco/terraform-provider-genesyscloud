@@ -67,11 +67,6 @@ release:
   draft: true
   extra_files:
     - glob: ./public/data/dependency_tree-*.json
-  footer: |
-    {{ if (fileExists "docs/releases/{{ .Version }}.md") }}
-    {{- $content := file "docs/releases/{{ .Version }}.md" }}
-    {{ $content }}
-    {{ end }}
 changelog:
   use: github
   sort: asc
